@@ -1,0 +1,22 @@
+# Core pipeline
+mediapipe==0.10.35
+opencv-contrib-python==5.0.0.93
+numpy==2.4.3
+scikit-learn==1.9.0
+matplotlib==3.10.9
+
+# Keras 3 (multi-backend) + torch backend.
+# tensorflow has no PyPI wheel for this project's Python version, so KERAS_BACKEND=torch
+# is set in trainmodel.py/app.py/model_builder.py before keras is imported -- no action
+# needed here beyond having torch installed.
+keras==3.15.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0+cpu
+
+# Tests
+pytest==9.0.2
+
+# Not pip-installable -- download these two model files separately and place them
+# in the project root before running data.py/trainmodel.py/app.py:
+#   hand_landmarker.task  : https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
+#   pose_landmarker_lite.task : https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
