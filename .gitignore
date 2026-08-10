@@ -1,1 +1,5 @@
 /MP_Data
+*.h5
+*.task
+/models
+/model.json
