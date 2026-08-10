@@ -1,13 +1,11 @@
 # Importing all required Python packages, libraries and frameworks
 import cv2
 import numpy as np
-import os
 import mediapipe as mp
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 
-# Path to the downloaded hand landmark model used by the Tasks API
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hand_landmarker.task')
+from config import *  # noqa: F401,F403 -- re-exported for `from function import *` call sites
 
 # Standard 21-point hand landmark topology, used for drawing connections
 # since the legacy mp.solutions.hands.HAND_CONNECTIONS is no longer available
@@ -20,10 +18,22 @@ HAND_CONNECTIONS = [
     (0, 17),                                 # palm
 ]
 
+# Connections between the 7-point pose subset, expressed as indices into
+# POSE_LANDMARK_INDICES (i.e. local positions in the extracted subset, not
+# the original 33-point MediaPipe Pose indices)
+POSE_CONNECTIONS = [
+    (1, 2),  # left_shoulder - right_shoulder
+    (1, 3),  # left_shoulder - left_elbow
+    (3, 5),  # left_elbow - left_wrist
+    (2, 4),  # right_shoulder - right_elbow
+    (4, 6),  # right_elbow - right_wrist
+]
+
+
 # Creating a HandLandmarker for either static images or a live video stream
 def create_hand_landmarker(running_mode, min_detection_confidence=0.5, min_tracking_confidence=0.5):
     options = vision.HandLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=MODEL_PATH),
+        base_options=BaseOptions(model_asset_path=HAND_MODEL_PATH),
         running_mode=running_mode,
         num_hands=1,
         min_hand_detection_confidence=min_detection_confidence,
@@ -31,7 +41,20 @@ def create_hand_landmarker(running_mode, min_detection_confidence=0.5, min_track
     )
     return vision.HandLandmarker.create_from_options(options)
 
-# Performing mediapipe detection for images
+
+# Creating a PoseLandmarker for either static images or a live video stream
+def create_pose_landmarker(running_mode, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+    options = vision.PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=POSE_MODEL_PATH),
+        running_mode=running_mode,
+        num_poses=1,
+        min_pose_detection_confidence=min_detection_confidence,
+        min_tracking_confidence=min_tracking_confidence,
+    )
+    return vision.PoseLandmarker.create_from_options(options)
+
+
+# Performing mediapipe detection for images (works for both hand and pose landmarkers)
 def mediapipe_detection(image, landmarker, timestamp_ms=None):
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
@@ -43,11 +66,13 @@ def mediapipe_detection(image, landmarker, timestamp_ms=None):
 
     return image, results
 
-# Drawing the landmarks and the hand connections
-def draw_styles_landmarks(image, results):
-    if results.hand_landmarks:
-        height, width = image.shape[:2]
-        for hand_landmarks in results.hand_landmarks:
+
+# Drawing the hand landmarks/connections, and optionally the pose subset
+def draw_styles_landmarks(image, hand_results, pose_results=None):
+    height, width = image.shape[:2]
+
+    if hand_results.hand_landmarks:
+        for hand_landmarks in hand_results.hand_landmarks:
             points = [(int(lm.x * width), int(lm.y * height)) for lm in hand_landmarks]
 
             for start_idx, end_idx in HAND_CONNECTIONS:
@@ -56,17 +81,35 @@ def draw_styles_landmarks(image, results):
             for point in points:
                 cv2.circle(image, point, 3, (0, 0, 255), -1)
 
+    if pose_results is not None and pose_results.pose_landmarks:
+        pose = pose_results.pose_landmarks[0]
+        points = [(int(pose[i].x * width), int(pose[i].y * height)) for i in POSE_LANDMARK_INDICES]
 
-# Extracting the keypoints from the detected landmarks
-def extract_keypoints(results):
-    if results.hand_landmarks:
-        hand = results.hand_landmarks[0]
-        return np.array([[lm.x, lm.y, lm.z] for lm in hand]).flatten()
+        for start_idx, end_idx in POSE_CONNECTIONS:
+            cv2.line(image, points[start_idx], points[end_idx], (0, 255, 0), 2)
 
-    return np.zeros(21*3)
+        for point in points:
+            cv2.circle(image, point, 4, (255, 0, 0), -1)
 
-# Defining the paths and parameters for data detection
-DATA_PATH = os.path.join('MP_Data')
-actions = ['A', 'B', 'C']
-no_sequences = 30
-sequence_length = 30
+
+# Extracting the keypoints from the detected hand and pose landmarks.
+# Hand-missing and pose-missing are independent events, so each block is
+# zero-filled independently rather than zeroing the whole vector if either
+# detector misses.
+def extract_keypoints(hand_results, pose_results):
+    if hand_results.hand_landmarks:
+        hand = hand_results.hand_landmarks[0]
+        hand_keypoints = np.array([[lm.x, lm.y, lm.z] for lm in hand]).flatten()
+    else:
+        hand_keypoints = np.zeros(21 * 3)
+
+    if pose_results.pose_landmarks:
+        pose = pose_results.pose_landmarks[0]
+        pose_keypoints = np.array([
+            [pose[i].x, pose[i].y, pose[i].z, pose[i].visibility or 0.0]
+            for i in POSE_LANDMARK_INDICES
+        ]).flatten()
+    else:
+        pose_keypoints = np.zeros(len(POSE_LANDMARK_INDICES) * 4)
+
+    return np.concatenate([hand_keypoints, pose_keypoints])
