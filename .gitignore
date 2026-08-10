@@ -3,3 +3,5 @@
 *.task
 /models
 /model.json
+/tests
+/tests/test_function.py
