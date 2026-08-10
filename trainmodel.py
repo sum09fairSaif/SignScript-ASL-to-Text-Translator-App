@@ -37,7 +37,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05, strati
 
 # Saving the logs for tensorboard
 logs_dir = os.path.join('logs')
-tb_callback = TensorBoard(logs_dir=logs_dir)
+tb_callback = TensorBoard(log_dir=logs_dir)
 
 # Defining a model
 model = Sequential([

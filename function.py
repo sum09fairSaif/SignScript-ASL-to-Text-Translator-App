@@ -7,7 +7,7 @@ import mediapipe as mp
 # Initializing the mediapipe utilities
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
-mp_hands = mp.solutions.hand
+mp_hands = mp.solutions.hands
 
 # Performing mediapipe detection for images
 def mediapipe_detection(image, model):

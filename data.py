@@ -22,7 +22,7 @@ with mp_hands.Hands(
                 print('Warning: image is not found')
                 continue
                 
-            image. results = mediapipe_detection(frame, hands)
+            image, results = mediapipe_detection(frame, hands)
             
             # Checking for hands in the frame
             if results.multi_hand_landmarks:
@@ -46,4 +46,4 @@ with mp_hands.Hands(
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
             
-cv2.destroyWindows()  # closing the OpenCV window after the data collection is complete
+cv2.destroyAllWindows()  # closing the OpenCV window after the data collection is complete

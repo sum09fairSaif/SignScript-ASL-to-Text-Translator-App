@@ -3,7 +3,7 @@ from function import *
 from keras.utils import to_categorical
 from keras.models import model_from_json
 from keras.layers import LSTM, Dense
-from keras.callback import TensorBoard
+from keras.callbacks import TensorBoard
 
 # Loading the trained model
 json_file = open('model.json', 'r')
@@ -59,13 +59,13 @@ with mp_hands.Hands(
         sequence = sequence[-30:]
         
         try:
-            if len(sentence) == 30:
+            if len(sequence) == 30:
                 res = model.predict(np.expand_dims(sequence, axis=0))[0]
                 predictions.append(np.argmax(res))
             
                 if np.unique(predictions[-10:])[0] == np.argmax(res):
                     if res[np.argmax(res)] > threshold:
-                        if len(sequence) > 0:
+                        if len(sentence) > 0:
                         
                             if actions[np.argmax(res)] != sentence[-1]:
                                 sentence.append(actions[np.argmax(res)])
