@@ -35,7 +35,13 @@ VAL_SPLIT = 0.15
 TEST_SPLIT = 0.15
 
 # Live inference
-PREDICTION_CONFIDENCE_THRESHOLD = 0.8
+# 0.8 was a placeholder carried over from the old 3-letter model and was never
+# calibrated against real 26-class behavior. Live debug output on the actual
+# trained model showed correct, stable predictions peaking around 0.45-0.57
+# confidence (softmax spread thin across 26 classes rather than sharply
+# peaked), so 0.8 silently filtered out every real prediction. Revisit this
+# once more training data narrows the model's confidence spread.
+PREDICTION_CONFIDENCE_THRESHOLD = 0.4
 PREDICTION_AGREEMENT_WINDOW = 10
 
 # Set True (or export DEBUG=1) to print live per-class confidence and full
