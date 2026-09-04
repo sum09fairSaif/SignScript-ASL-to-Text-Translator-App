@@ -1,6 +1,13 @@
 # Loads the fine-tuned translator and exposes translate(gloss_tokens) -> str
 # for app_gloss.py.
 import os
+import sys
+
+# Ensures translator_config resolves whether this file is run directly
+# (python translator/train.py, which already puts this dir on sys.path) or
+# imported as a submodule (`from translator.infer import translate` from
+# app_gloss.py at the project root, which does NOT add this dir to sys.path)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer

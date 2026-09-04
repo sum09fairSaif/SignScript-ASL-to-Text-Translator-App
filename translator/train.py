@@ -1,5 +1,8 @@
 # Fine-tunes Flan-T5-small on ASLG-PC12 gloss->English pairs.
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
 import torch

@@ -1,5 +1,8 @@
 # Cleans and splits the raw ASLG-PC12 gloss/English pairs for fine-tuning.
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
