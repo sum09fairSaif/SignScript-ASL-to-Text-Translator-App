@@ -30,12 +30,13 @@ POSE_CONNECTIONS = [
 ]
 
 
-# Creating a HandLandmarker for either static images or a live video stream
-def create_hand_landmarker(running_mode, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+# Creating a HandLandmarker for either static images or a live video stream.
+# num_hands=1 (default) suits one-handed fingerspelling; word signs need 2.
+def create_hand_landmarker(running_mode, min_detection_confidence=0.5, min_tracking_confidence=0.5, num_hands=1):
     options = vision.HandLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=HAND_MODEL_PATH),
         running_mode=running_mode,
-        num_hands=1,
+        num_hands=num_hands,
         min_hand_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
@@ -102,6 +103,47 @@ def extract_keypoints(hand_results, pose_results):
         hand_keypoints = np.array([[lm.x, lm.y, lm.z] for lm in hand]).flatten()
     else:
         hand_keypoints = np.zeros(21 * 3)
+
+    if pose_results.pose_landmarks:
+        pose = pose_results.pose_landmarks[0]
+        pose_keypoints = np.array([
+            [pose[i].x, pose[i].y, pose[i].z, pose[i].visibility or 0.0]
+            for i in POSE_LANDMARK_INDICES
+        ]).flatten()
+    else:
+        pose_keypoints = np.zeros(len(POSE_LANDMARK_INDICES) * 4)
+
+    return np.concatenate([hand_keypoints, pose_keypoints])
+
+
+# Extracting keypoints for two-handed word signs. Each hand occupies a fixed
+# slot by handedness label ("Left"/"Right") rather than detection order, so
+# the same anatomical hand always lands in the same position in the vector
+# regardless of the order MediaPipe happens to report hands in. Slots are
+# independently zero-filled if that hand isn't present in a frame. If two
+# hands somehow report the same handedness label in one frame (rare tracking
+# glitch), keep the higher-confidence one rather than silently overwriting.
+def extract_keypoints_two_hand(hand_results, pose_results):
+    hand_slots = {'Left': None, 'Right': None}
+
+    if hand_results.hand_landmarks:
+        for hand_landmarks, handedness in zip(hand_results.hand_landmarks, hand_results.handedness):
+            label = handedness[0].category_name
+            score = handedness[0].score or 0.0
+
+            if label not in hand_slots:
+                continue
+
+            if hand_slots[label] is not None and hand_slots[label][1] >= score:
+                continue
+
+            keypoints = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks]).flatten()
+            hand_slots[label] = (keypoints, score)
+
+    hand_keypoints = np.concatenate([
+        hand_slots['Left'][0] if hand_slots['Left'] is not None else np.zeros(21 * 3),
+        hand_slots['Right'][0] if hand_slots['Right'] is not None else np.zeros(21 * 3),
+    ])
 
     if pose_results.pose_landmarks:
         pose = pose_results.pose_landmarks[0]
