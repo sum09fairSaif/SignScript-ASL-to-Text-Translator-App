@@ -5,3 +5,6 @@
 /model.json
 /tests
 /tests/test_function.py
+/GlossData
+/external_data
+/translator/data
