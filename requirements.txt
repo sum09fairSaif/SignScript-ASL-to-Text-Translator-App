@@ -13,6 +13,14 @@ keras==3.15.1
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.10.0+cpu
 
+# Gloss-to-English translator: fine-tunes google/flan-t5-small on ASLG-PC12
+# (pandas/pyarrow read the corpus parquet directly -- no `datasets` library needed)
+transformers==5.16.1
+sentencepiece==0.2.2
+accelerate==1.14.0
+pandas==2.3.3
+pyarrow==23.0.1
+
 # Tests
 pytest==9.0.2
 
@@ -20,3 +28,11 @@ pytest==9.0.2
 # in the project root before running data.py/trainmodel.py/app.py:
 #   hand_landmarker.task  : https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
 #   pose_landmarker_lite.task : https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
+#
+# Also not pip-installable -- download separately before using the gloss/translator pipeline:
+#   ASLG-PC12 parquet (gloss-to-English training corpus, ~7MB):
+#     https://huggingface.co/datasets/achrafothman/aslg_pc12/resolve/main/data/train-00000-of-00001.parquet
+#     -> save to translator/data/raw/aslg_pc12_train.parquet
+#   ASL Citizen (word-sign video dataset, 42.8GB):
+#     https://www.microsoft.com/en-us/download/details.aspx?id=105253
+#     -> extract to external_data/asl_citizen/
